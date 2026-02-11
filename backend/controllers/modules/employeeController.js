@@ -266,14 +266,15 @@ export const paySalary = async (req, res) => {
         const { baseSalary, leavesTaken, freeLeaves, deductionAmount } = req.body;
 
         // 1. Create Salary Record
+        // Map frontend calculation keys to DB keys if needed
         const salaryRecord = new SalaryRecord({
-            companyId,
+            companyId: companyId || employee.companyId,
             employeeId: id,
             amount: amount, // Final Paid Amount
-            baseSalary: baseSalary || employee.salary,
-            leavesTaken: leavesTaken || 0,
-            freeLeaves: freeLeaves || employee.freeLeavesPerMonth,
-            deductionAmount: deductionAmount || 0,
+            baseSalary: baseSalary || Math.round(employee.salary / 12),
+            leavesTaken: req.body.totalLeaves !== undefined ? req.body.totalLeaves : (leavesTaken || 0),
+            freeLeaves: freeLeaves !== undefined ? freeLeaves : (employee.freeLeavesPerMonth || 0),
+            deductionAmount: req.body.deduction !== undefined ? req.body.deduction : (deductionAmount || 0),
             paymentDate,
             payPeriod,
             remarks,
@@ -281,12 +282,15 @@ export const paySalary = async (req, res) => {
         });
         await salaryRecord.save();
 
+        const Company = (await import('../../models/Global/Company.js')).Company;
+        const currentCompany = await Company.findById(companyId || employee.companyId);
+
         // 2. Create Expense
         const expense = new Expense({
-            companyId,
+            companyId: companyId || employee.companyId,
             category: 'Payroll',
             amount: amount,
-            date: paymentDate,
+            date: paymentDate || new Date(),
             description: `Salary Payment for ${employee.firstName} ${employee.lastName} - ${payPeriod}`,
             paymentMethod: 'Bank Transfer'
         });

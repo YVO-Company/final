@@ -29,11 +29,13 @@ api.interceptors.response.use(
     (error) => {
         if (error.response && error.response.status === 401) {
             localStorage.removeItem('token');
-            const role = localStorage.getItem('userRole');
-            if (role === 'admin' || role === 'superadmin') {
-                window.location.href = '/admin-login';
+            const role = localStorage.getItem('userRole')?.toLowerCase();
+            if (role === 'super_admin' || role === 'superadmin') {
+                window.location.href = '/master-portal';
+            } else if (role === 'admin') {
+                window.location.href = '/company-login';
             } else {
-                window.location.href = '/login';
+                window.location.href = '/employee-login';
             }
         }
         return Promise.reject(error);

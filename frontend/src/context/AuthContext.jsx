@@ -26,6 +26,7 @@ export const AuthProvider = ({ children }) => {
 
         localStorage.setItem('token', token);
         localStorage.setItem('user', JSON.stringify(userData));
+        localStorage.setItem('userRole', userData.role || 'admin');
         if (currentCompanyId) {
             localStorage.setItem('companyId', currentCompanyId);
         }
@@ -69,6 +70,7 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
         localStorage.removeItem('companyId');
+        localStorage.removeItem('userRole');
         setUser(null);
     };
 

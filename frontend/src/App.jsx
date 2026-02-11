@@ -29,6 +29,7 @@ import InvoiceBuilder from './pages/modules/InvoiceBuilder';
 import Payroll from './pages/modules/Payroll';
 import Leaves from './pages/modules/Leaves';
 import Broadcasts from './pages/modules/Broadcasts'; // Admin Broadcasts
+import Billing from './pages/modules/Billing';
 
 // Employee Pages
 import EmployeeLayout from './pages/employee/EmployeeLayout';
@@ -53,9 +54,9 @@ export default function App() {
             <Route path="/features" element={<Features />} />
             <Route path="/pricing" element={<Pricing />} />
             <Route path="/help" element={<Help />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/admin-login" element={<AdminLogin />} />
-            <Route path="/super-admin-login" element={<SuperAdminLogin />} />
+            <Route path="/employee-login" element={<Login />} />
+            <Route path="/company-login" element={<AdminLogin />} />
+            <Route path="/master-portal" element={<SuperAdminLogin />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/download" element={<Download />} />
           </Route>
@@ -76,6 +77,7 @@ export default function App() {
             <Route path="leaves" element={<Leaves />} />
             <Route path="calendar" element={<CalendarModule />} />
             <Route path="settings" element={<Settings />} />
+            <Route path="billing" element={<Billing />} />
 
             {/* Super Admin Routes */}
             <Route path="companies" element={<Companies />} />

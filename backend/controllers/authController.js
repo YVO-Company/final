@@ -75,6 +75,7 @@ export const registerCompany = async (req, res) => {
 export const login = async (req, res) => {
     try {
         const { email, password } = req.body;
+
         const user = await User.findOne({ email }).populate('memberships.companyId');
 
         if (user && (await bcrypt.compare(password, user.passwordHash))) {

@@ -1,5 +1,6 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useMemo } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const navLinks = [
   { label: 'Home', to: '/' },
@@ -9,47 +10,26 @@ const navLinks = [
 ];
 
 export default function Header() {
-  const [profile, setProfile] = useState({ name: '', role: '' });
-
-  useEffect(() => {
-    const loadProfile = () => {
-      const name = localStorage.getItem('userProfileName') || '';
-      const role = localStorage.getItem('userRole') || '';
-      const hasToken = Boolean(localStorage.getItem('userToken'));
-      setProfile(hasToken ? { name: name || 'Account', role } : { name: '', role: '' });
-    };
-
-    loadProfile();
-    window.addEventListener('storage', loadProfile);
-    return () => window.removeEventListener('storage', loadProfile);
-  }, []);
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
 
   const initials = useMemo(() => {
-    if (!profile.name) return 'U';
-    return profile.name
+    if (!user?.fullName && !user?.firstName) return 'U';
+    const name = user.fullName || `${user.firstName} ${user.lastName || ''}`;
+    return name
       .split(' ')
       .filter(Boolean)
       .slice(0, 2)
       .map((item) => item[0]?.toUpperCase())
       .join('');
-  }, [profile.name]);
+  }, [user]);
 
   const handleLogout = () => {
-    localStorage.removeItem('userToken');
-    localStorage.removeItem('userProfileName');
-    localStorage.removeItem('userRole');
-    setProfile({ name: '', role: '' });
+    logout();
+    navigate('/');
   };
 
   const styles = {
-    header: {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      padding: "10px 20px",
-      background: "#0f172a",
-      color: "#fff",
-    },
     loader: {
       width: "30px",
       height: "30px",
@@ -63,9 +43,10 @@ export default function Header() {
         <Link to="/" className="flex items-center gap-2">
           <img
             src="/logo.svg"
-            alt="Loading..."
+            alt="YVO"
             style={styles.loader}
           />
+          <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">YVO</span>
         </Link>
 
         <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
@@ -76,20 +57,22 @@ export default function Header() {
           ))}
         </div>
 
-        {profile.name ? (
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-2 border border-slate-200 rounded-full px-3 py-1.5">
-              <div className="w-8 h-8 rounded-full bg-brand text-white flex items-center justify-center text-xs font-semibold">
+        {user ? (
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3 bg-slate-50 border border-slate-200 rounded-full pl-1.5 pr-4 py-1.5 hover:bg-slate-100 transition-colors cursor-pointer" onClick={() => navigate(user.role === 'employee' ? '/employee-dashboard' : '/dashboard')}>
+              <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm">
                 {initials}
               </div>
-              <div className="text-sm font-semibold text-slate-700">{profile.name}</div>
-              {profile.role && <span className="text-xs text-slate-400 uppercase">{profile.role}</span>}
+              <div className="flex flex-col">
+                <div className="text-sm font-bold text-slate-800 leading-tight">{user.fullName || user.firstName}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{user.role || 'User'}</div>
+              </div>
             </div>
 
             <button
               type="button"
               onClick={handleLogout}
-              className="text-sm text-slate-500 hover:text-brand transition"
+              className="text-sm font-semibold text-slate-500 hover:text-red-600 transition-colors"
             >
               Logout
             </button>
@@ -97,15 +80,15 @@ export default function Header() {
         ) : (
           <div className="flex items-center gap-3">
             <Link
-              to="/admin-login"
-              className="border border-brand text-brand px-4 py-2 rounded-full text-sm font-semibold hover:bg-blue-50 transition"
+              to="/company-login"
+              className="border border-indigo-600 text-indigo-600 px-5 py-2 rounded-full text-sm font-bold hover:bg-indigo-50 transition-all"
             >
               Company Login
             </Link>
 
             <Link
-              to="/login"
-              className="bg-brand text-white px-4 py-2 rounded-full text-sm font-semibold shadow-sm hover:bg-blue-700 transition"
+              to="/employee-login"
+              className="bg-indigo-600 text-white px-5 py-2 rounded-full text-sm font-bold shadow-md shadow-indigo-200 hover:bg-indigo-700 hover:-translate-y-0.5 transition-all"
             >
               Employee Login
             </Link>

@@ -44,12 +44,14 @@ export const getConfig = async (req, res) => {
         };
 
         // ENFORCE SUBSCRIPTION EXPIRY
-        // Logic Update: Trust 'active' status even if date is passed (Grace Period / Due)
-        // Only lock if status is explicitly expired, suspended, or inactive
-        const isAppLocked = company.subscriptionStatus !== 'active' && company.subscriptionStatus !== 'trial';
+        const now = new Date();
+        const hasExpired = company.subscriptionEndsAt && new Date(company.subscriptionEndsAt) < now;
+
+        // Lock if status is explicitly inactive OR if the subscription date has passed
+        const isAppLocked = (company.subscriptionStatus !== 'active' && company.subscriptionStatus !== 'trial') || hasExpired;
 
         if (isAppLocked) {
-            console.log(`[Config] Company ${company.name} (${company._id}) is ${company.subscriptionStatus}. Locking all features.`);
+            console.log(`[Config] Company ${company.name} (${company._id}) is ${hasExpired ? 'EXPIRED' : company.subscriptionStatus}. Locking all features.`);
             // Force all flags to false
             Object.keys(effectiveFlags).forEach(key => effectiveFlags[key] = false);
         }
@@ -80,14 +82,15 @@ export const getConfig = async (req, res) => {
             limits: effectiveLimits,
             // Return modules based on possibly locked flags
             modules: {
-                finance: effectiveFlags['module_finance'] || effectiveFlags['finance'] || false,
-                invoicing: effectiveFlags['module_invoicing'] || effectiveFlags['invoicing'] || false,
-                inventory: effectiveFlags['module_inventory'] || effectiveFlags['inventory'] || false,
-                employees: effectiveFlags['module_employees'] || effectiveFlags['employees'] || false,
-                payroll: effectiveFlags['module_employees'] || effectiveFlags['employees'] || false,
-                calendar: effectiveFlags['module_calendar'] || effectiveFlags['calendar'] || false,
-                broadcasts: effectiveFlags['module_broadcasts'] || false,
-                analytics: effectiveFlags['module_analytics'] || effectiveFlags['analytics'] || false, // Analytics also locked likely
+                finance: effectiveFlags['module_finance'] ?? effectiveFlags['finance'] ?? false,
+                invoicing: effectiveFlags['module_invoicing'] ?? effectiveFlags['invoicing'] ?? false,
+                inventory: effectiveFlags['module_inventory'] ?? effectiveFlags['inventory'] ?? false,
+                employees: effectiveFlags['module_employees'] ?? effectiveFlags['employees'] ?? false,
+                payroll: effectiveFlags['module_employees'] ?? effectiveFlags['employees'] ?? false,
+                leaves: effectiveFlags['module_employees'] ?? effectiveFlags['employees'] ?? false,
+                calendar: effectiveFlags['module_calendar'] ?? effectiveFlags['calendar'] ?? false,
+                broadcasts: effectiveFlags['module_broadcasts'] ?? false,
+                analytics: effectiveFlags['module_analytics'] ?? effectiveFlags['analytics'] ?? false, // Analytics also locked likely
             }
         };
 
@@ -129,6 +132,48 @@ export const verifyPassword = async (req, res) => {
         const isValid = company.invoiceEditPassword === password;
 
         res.json({ valid: isValid });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+// POST /company/renew-subscription
+export const renewSubscription = async (req, res) => {
+    try {
+        const companyId = req.headers['x-company-id'] || req.query.companyId || req.body.companyId;
+        const { days = 30 } = req.body;
+
+        const Company = (await import('../../models/Global/Company.js')).Company;
+
+        if (!companyId) {
+            return res.status(400).json({ message: 'Company context required' });
+        }
+
+        const company = await Company.findById(companyId);
+        if (!company) {
+            return res.status(404).json({ message: 'Company not found' });
+        }
+
+        // Calculate new date
+        let baseDate = new Date();
+        // If current subscription is still active, add to the end of it
+        if (company.subscriptionEndsAt && new Date(company.subscriptionEndsAt) > baseDate) {
+            baseDate = new Date(company.subscriptionEndsAt);
+        }
+
+        const newEndsAt = new Date(baseDate.getTime() + (days * 24 * 60 * 60 * 1000));
+
+        company.subscriptionEndsAt = newEndsAt;
+        company.subscriptionStatus = 'active';
+        await company.save();
+
+        console.log(`[Billing] Subscription for ${company.name} extended to ${newEndsAt.toLocaleDateString()}`);
+
+        res.json({
+            message: 'Subscription renewed successfully',
+            subscriptionEndsAt: newEndsAt,
+            subscriptionStatus: 'active'
+        });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

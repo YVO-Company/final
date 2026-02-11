@@ -8,6 +8,7 @@ const router = express.Router();
 
 router.get('/config', configController.getConfig);
 router.patch('/:id', configController.updateCompany);
+router.post('/renew-subscription', configController.renewSubscription);
 router.post('/verify-password', configController.verifyPassword); // Security check
 
 export default router;

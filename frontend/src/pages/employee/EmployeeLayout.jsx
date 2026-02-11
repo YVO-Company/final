@@ -13,7 +13,7 @@ export default function EmployeeLayout() {
 
     useEffect(() => {
         if (!loading && (!user || user.role !== 'employee')) {
-            navigate('/login');
+            navigate('/employee-login');
         }
     }, [loading, user, navigate]);
 
@@ -24,7 +24,7 @@ export default function EmployeeLayout() {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/employee-login');
     };
 
     if (loading) return <div className="min-h-screen flex items-center justify-center text-slate-500">Loading...</div>;

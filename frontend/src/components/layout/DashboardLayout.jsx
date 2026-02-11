@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Outlet, useNavigate, Link, useLocation } from 'react-router-dom';
 import api from '../../services/api';
+import toast from 'react-hot-toast';
 import {
     LayoutDashboard, Building2, Ticket, Flag, Cloud,
-    BarChart3, Shield, Settings, LogOut, Users, Calendar, FileText, DollarSign, ChevronDown
+    BarChart3, Shield, Settings, LogOut, Users, Calendar, FileText, DollarSign, ChevronDown,
+    Lock, BadgeDollarSign, ClipboardList
 } from 'lucide-react';
 
 export default function DashboardLayout() {
@@ -17,7 +19,7 @@ export default function DashboardLayout() {
     // Redirect if not authenticated
     useEffect(() => {
         if (!authLoading && !user) {
-            navigate('/login');
+            navigate('/company-login');
         }
     }, [authLoading, user, navigate]);
 
@@ -41,7 +43,7 @@ export default function DashboardLayout() {
 
     const handleLogout = () => {
         logout();
-        navigate('/login');
+        navigate('/company-login');
     };
 
     if (authLoading) return <div className="min-h-screen flex items-center justify-center text-slate-500">Initializing...</div>;
@@ -157,8 +159,8 @@ export default function DashboardLayout() {
                         active={location.pathname.includes('/dashboard/employees') || location.pathname.includes('/dashboard/leaves') || location.pathname.includes('/dashboard/payroll')}
                         subItems={[
                             { label: 'All Employees', href: '/dashboard/employees', active: location.pathname === '/dashboard/employees' },
-                            { label: 'Leaves', href: '/dashboard/leaves', active: location.pathname === '/dashboard/leaves' },
-                            { label: 'Payroll', href: '/dashboard/payroll', active: location.pathname === '/dashboard/payroll' }
+                            { label: 'Payroll', href: '/dashboard/payroll', active: location.pathname === '/dashboard/payroll' },
+                            { label: 'Leaves', href: '/dashboard/leaves', active: location.pathname === '/dashboard/leaves' }
                         ]}
                     />
 
@@ -188,11 +190,29 @@ export default function DashboardLayout() {
                 </nav>
 
                 <div className="mt-auto border-t border-slate-200 p-4">
+                    {config?.company?.subscriptionStatus === 'active' && config?.company?.subscriptionEndsAt && new Date(config.company.subscriptionEndsAt) < new Date() && (
+                        <div className="mb-6 px-4 py-3 bg-gradient-to-br from-red-50 to-orange-50 rounded-xl border border-red-200 shadow-sm animate-pulse">
+                            <div className="text-[10px] font-bold text-red-600 uppercase tracking-wider">Action Required</div>
+                            <div className="text-sm font-bold text-red-900 mt-1">Plan Expired!</div>
+                            <p className="text-[11px] text-red-700 mt-0.5 leading-relaxed">Your features are currently locked. Renew to continue.</p>
+                            <Link
+                                to="/dashboard/billing"
+                                className="mt-3 block w-full text-center py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-lg transition-all shadow-md shadow-red-200"
+                            >
+                                Renew Now
+                            </Link>
+                        </div>
+                    )}
                     <div className="mb-4 px-3 py-2 bg-slate-50 rounded-lg border border-slate-200">
                         <div className="text-xs font-semibold text-slate-500 uppercase">Current Plan</div>
                         <div className="flex items-center justify-between mt-1">
-                            <span className="text-sm font-bold text-indigo-600">{config?.company?.plan}</span>
-                            <span className="h-2 w-2 rounded-full bg-green-500"></span>
+                            <div className="flex flex-col">
+                                <span className="text-sm font-bold text-indigo-600">{config?.company?.plan}</span>
+                                {config?.company?.subscriptionEndsAt && new Date(config.company.subscriptionEndsAt) < new Date() && (
+                                    <span className="text-[10px] text-red-500 font-medium">Expired {new Date(config.company.subscriptionEndsAt).toLocaleDateString()}</span>
+                                )}
+                            </div>
+                            <span className={`h-2.5 w-2.5 rounded-full ${config?.company?.subscriptionEndsAt && new Date(config.company.subscriptionEndsAt) < new Date() ? 'bg-red-500' : 'bg-green-500'}`}></span>
                         </div>
                     </div>
                     <button onClick={handleLogout} className="flex items-center gap-3 w-full px-3 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors">
@@ -221,12 +241,12 @@ export default function DashboardLayout() {
                     {configLoading ? <div className="animate-pulse">Loading...</div> : <Outlet context={{ config }} />}
                 </main>
             </div>
-        </div>
+        </div >
     );
 }
 
-import toast from 'react-hot-toast';
-import { Lock } from 'lucide-react';
+
+// Helper Component for Sidebar Items
 
 const SidebarItem = ({ icon, label, href, active, subItems, locked }) => {
     const [isOpen, setIsOpen] = useState(active);
